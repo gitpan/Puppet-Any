@@ -1,9 +1,9 @@
 ############################################################
 #
-# $Header: /mnt/barrayar/d06/home/domi/Tools/perlDev/Puppet_Any/RCS/Any.pm,v 1.8 1998/06/22 16:13:06 domi Exp $
+# $Header: /mnt/barrayar/d06/home/domi/Tools/perlDev/Puppet_Any/RCS/Any.pm,v 1.9 1998/06/25 12:01:40 domi Exp $
 #
 # $Source: /mnt/barrayar/d06/home/domi/Tools/perlDev/Puppet_Any/RCS/Any.pm,v $
-# $Revision: 1.8 $
+# $Revision: 1.9 $
 # $Locker:  $
 # 
 ############################################################
@@ -19,7 +19,7 @@ use AutoLoader 'AUTOLOAD' ;
 
 use strict ;
 use vars qw($VERSION) ;
-$VERSION = '0.02' ;
+$VERSION = '0.03' ;
 
 # stubs
 sub acquire ;

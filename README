@@ -2,6 +2,9 @@
 Puppet::* classes are designed to provide an access to the "puppeted"
 object using a GUI based on Tk.
 
+In other words the user is the puppeeter and it controls its puppet
+object through the optionnal Tk display.
+
 The basic idea is when you construct a Puppet::* object, you have all the
 functionnality of the object without the GUI. Then, when the need arises,
 you may (or the class may decide to) open the GUI of the object and then
