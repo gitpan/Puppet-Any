@@ -1,9 +1,9 @@
 ############################################################
 #
-# $Header: /mnt/barrayar/d06/home/domi/Tools/perlDev/Puppet_Any/RCS/Any.pm,v 1.9 1998/06/25 12:01:40 domi Exp $
+# $Header: /mnt/barrayar/d06/home/domi/Tools/perlDev/Puppet_Any/RCS/Any.pm,v 1.10 1998/08/19 11:23:08 domi Exp $
 #
 # $Source: /mnt/barrayar/d06/home/domi/Tools/perlDev/Puppet_Any/RCS/Any.pm,v $
-# $Revision: 1.9 $
+# $Revision: 1.10 $
 # $Locker:  $
 # 
 ############################################################
@@ -18,8 +18,8 @@ use Puppet::Log ;
 use AutoLoader 'AUTOLOAD' ;
 
 use strict ;
-use vars qw($VERSION) ;
-$VERSION = '0.03' ;
+use vars qw($VERSION $podWidget) ;
+$VERSION = '0.04' ;
 
 # stubs
 sub acquire ;
@@ -60,9 +60,15 @@ sub new
       }
 
     # config debug window
-    foreach (qw(debug event))
+    foreach (qw/debug event/)
       {
-        $self->{'log'}{$_} = new Puppet::Log ($_,%args);
+        my $what = $_ ;
+        $self->{'log'}{$_} = new Puppet::Log 
+          (
+           $_,
+           'help' => sub {$self->showHelp('Puppet::Any',"$what log window")},
+           %args
+          );
       }
 
     bless $self,$type ;
@@ -157,6 +163,24 @@ to debug the child class you're going to develop.
 
 #'
 
+=head1 DEFAULT WINDOWS
+
+=head2 debug log window
+
+This log window (see Puppet::Log(3)) will get all debug information for 
+this instance of the object. More or less reserved for developers of 
+children of Puppet::Any.
+
+Users object inheriting from Puppet::Any must
+use the printDebug() method to log debug info in this window.
+
+=head2 event log window
+
+This log window (see Puppet::Log(3)) will get all event information for 
+this instance of the object. 
+
+Users object inheriting from Puppet::Any must
+use the printEvent() method to log debug info in this window.
 =head1 Object attributes
 
 =head2 name
@@ -359,7 +383,7 @@ sub acquiredBy
     my $self = shift ;
     my $ref  = shift ;
     # the key is the ref evaluated in string context (i.e HASH(0x...)
-    $self->{container}{"$ref"}=$ref ;
+    $self->{container}{"$ref"} = $ref ;
   }
 
 sub droppedBy
@@ -459,7 +483,9 @@ sub display
     
     # load MultiText::manager
     $self->{tk}{multiMgr} = $self->{tk}{toplevel} -> MultiManager 
-      ( 'title' => 'log' , 'menu' => $w_menu ) -> pack ();
+      ( 'title' => 'windows' , 'menu' => $w_menu ,
+      'help' => sub {$self->showHelp() ;}) 
+        -> pack (expand => 1, fill => 'both');
     
     # bind dump info 
     $self->{tk}{toplevel}->bind ('<Meta-d>', $showDebug);
@@ -557,5 +583,42 @@ sub deleteDbInfo
         delete $self->{dbHash}{ $self->{myDbKey} } ; # destroy all
         delete $self->{"myDbHash"} ;
       }
+  }
+
+sub showHelp
+  {
+    my $self = shift ;
+    my $podName = shift ;
+    my $podSection = shift ;
+
+    require Tk::Pod::Text ;
+    require Tk::Pod ;
+    
+    my $class =  defined $podName ? $podName : 
+      defined $self->{podName} ? $self->{podName} : ref($self);
+    my $section = defined $podSection ? $podSection :
+      defined  $self->{podSection} ? $self->{podSection} : 'WIDGET USAGE' ;
+
+    my $podSpec = $class.'/"'.$section.'"' ;
+
+    #print "podW is ",ref($podWidget)," children ",$self->{topTk}->children,"\n";
+    my ($pod)  = grep (ref($_) eq 'Tk::Pod',$self->{topTk}->children) ;
+    #print "1 pod is $pod, ",ref($pod),"\n";
+
+    unless (defined $pod) 
+      {
+        #print "Creating Tk::Pod\n";
+        $pod = $self->{topTk}->Pod() ;
+      }
+
+    #print "2 pod is $pod, ",ref($pod),"\n";
+
+#    $podWidget = $self->{topTk}->Pod() 
+#      unless (defined $podWidget and ref($podWidget) eq 'Tk::Pod' );
+
+    # first param is 'reuse' or 'new'.
+    # Pod::Text cannot find a section befire it is displayed
+    $pod->Subwidget('pod')->Link('reuse',undef, $podSpec)
+
   }
 

@@ -5,22 +5,22 @@ object using a GUI based on Tk.
 In other words the user is the puppeeter and it controls its puppet
 object through the optionnal Tk display.
 
-The basic idea is when you construct a Puppet::* object, you have all the
-functionnality of the object without the GUI. Then, when the need arises,
-you may (or the class may decide to) open the GUI of the object and then
-the user may perform any interactive he wishes.
+The basic idea is when you construct a Puppet::* object, you have all
+the functionnality of the object without the GUI. Then, when the need
+arises, you may (or the class may decide to) open the GUI of the
+object and then the user may perform any interactive he wishes.
 
-On the other hand, if the need does not arise, you may instanciate a lot of 
-objects without cluttering your display.
+On the other hand, if the need does not arise, you may instanciate a
+lot of objects without cluttering your display.
 
-For instance, if you have an object (say a ProcessGroup) 
-controlling a set of processes (Process objects). The user may start the
-ProcessGroup through its GUI. Then all processes are run. If one of them
-fails, it will raise its own GUI to display the cause of the problem and 
-let the user decide what to do. 
+For instance, if you have an object (say a ProcessGroup) controlling a
+set of processes (Process objects). The user may start the
+ProcessGroup through its GUI. Then all processes are run. If one of
+them fails, it will raise its own GUI to display the cause of the
+problem and let the user decide what to do.
 
-This class named Puppet::Any is the base class inherited by all other 
-Puppet classes. In this example, Process and Process group both will 
+This class named Puppet::Any is the base class inherited by all other
+Puppet classes. In this example, Process and Process group both will
 inherit Puppet::Any.
 
 The base class features :
@@ -36,6 +36,8 @@ The base class features :
   display of all "contained" objects.
 - a facility to store data on a database file tied to a hash (using the MLDBM
   module)
+- a help support so you can provide an on-line documentation (based on 
+Tk::Pod)
 
 Future puppets derived of Puppet::Any will be :
 Puppet::Twins (for RPC calls and Puppet features)
@@ -43,13 +45,12 @@ Puppet::Process
 Puppet::ProcessGroup
 Puppet::AtomicTest (no nuke there, its just a test that cannot be divided)
 
-Don't ask me for a release or a release date of them. I have prototypes of
-most of them and I'll release them when I get the time to put them in a proper 
-shape and to document them.
+Don't ask me for a release or a release date of them. I have
+prototypes of most of them and I'll release them when I get the time
+to put them in a proper shape and to document them.
 
-
-This is Version 0.02.  See the "Changes" file for details on
-the new features and fixes in this release.
+I'd like people who actually use this module for their application to
+drop me a short note about what they're using this module for. 
 
 This module was written with perl5.004. 
 

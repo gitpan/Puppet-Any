@@ -3,6 +3,8 @@
 
 ######################### We start with some black magic to print on failure.
 
+# test Puppet::Any
+
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
@@ -11,6 +13,7 @@ END {print "not ok 1\n" unless $loaded;}
 use Tk ;
 use ExtUtils::testlib;
 use Puppet::Any ;
+use Tk::ErrorDialog; 
 $loaded = 1;
 print "ok 1\n";
 
@@ -27,11 +30,22 @@ use vars qw(@ISA) ;
 
 @ISA=('Puppet::Any') ;
 
+sub new
+  {
+    my $type = shift ;
+    my $self = new Puppet::Any(@_) ;
+
+    $self->{podName} = 'Puppet::Any';
+    $self->{podSection} = 'DESCRIPTION';
+    
+    bless $self,$type ;
+  }
+
 sub addChildren
   {
     my $self = shift ;
 
-    # create myself 10 children
+    # create myself some children
     foreach my $n (qw/albert charlotte raymond spirou zorglub/)
       {
         $self->acquire($n, new MyTest (name => $n, 'topTk' => $self->{topTk} , 
@@ -85,11 +99,10 @@ $w_menu->pack(-fill => 'x');
 my $f = $w_menu->Menubutton(-text => 'File', -underline => 0) 
   -> pack(side => 'left' );
 
-my $spe = $mw->Frame -> pack ;
-
 print "creating manager\n";
 my $wmgr = $mw -> MultiManager ( 'title' => 'Any test' ,
-                             'menu' => $w_menu ) -> pack ();
+                             'menu' => $w_menu ) 
+  -> pack (expand => 1, fill => 'both');
 
 my $test = new MyTest(name => 'under_test', 'topTk' => $mw ) ;
 

@@ -1,3 +1,9 @@
+v 0.04: 1998-08-19  Dominique Dumont  <domi@barrayar.grenoble.hp.com>
+
+	* Any.pm: - added help support
+                  - better geometry management
+
+
 1998-06-25  Dominique Dumont  <domi@barrayar.grenoble.hp.com>
 
 	* v0.03:
