@@ -31,6 +31,8 @@ The base class features :
 - A set of functions to managed "has-a" relationship between Puppet objects.
   The menu bar feature a "content" bar which enabled the user to open the
   display of all "contained" objects.
+- a facility to store data on a database file tied to a hash (using the MLDBM
+  module)
 
 Future puppets derived of Puppet::Any will be :
 Puppet::Twins (for RPC calls and Puppet features)
@@ -43,7 +45,7 @@ most of them and I'll release them when I get the time to put them in a proper
 shape and to document them.
 
 
-This is Version 0.01.  See the "Changes" file for details on
+This is Version 0.02.  See the "Changes" file for details on
 the new features and fixes in this release.
 
 This module was written with perl5.004. 

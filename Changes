@@ -1,4 +1,14 @@
-Revision history for Perl extension Tk::Log.
+1998-06-22  Dominique Dumont  <domi@barrayar.grenoble.hp.com>
+
+	* v0.02
+	- constructor pass new argument to Puppet::Log constructor
+	- content menu items are correctly sorted.
+	- corrected drop function to correctly destroy menu item without 
+	  relying on the pattern matching mechanism. It now recalculate 
+	  the menu index.
+	- added a File->show internal menu entry to display internal variables
+	- added DB support
+
 
 0.01  Wed Jul 23 17:02:08 1997
 	- original version; created by h2xs 1.18

@@ -1,15 +1,16 @@
 ############################################################
 #
-# $Header: /users/domi/Tools/perlDev/Puppet_Any/RCS/Any.pm,v 1.6 1998/03/18 10:04:49 domi Exp $
+# $Header: /mnt/barrayar/d06/home/domi/Tools/perlDev/Puppet_Any/RCS/Any.pm,v 1.8 1998/06/22 16:13:06 domi Exp $
 #
-# $Source: /users/domi/Tools/perlDev/Puppet_Any/RCS/Any.pm,v $
-# $Revision: 1.6 $
+# $Source: /mnt/barrayar/d06/home/domi/Tools/perlDev/Puppet_Any/RCS/Any.pm,v $
+# $Revision: 1.8 $
 # $Locker:  $
 # 
 ############################################################
 
 package Puppet::Any ;
 
+use Carp ;
 use Tk::Multi::Manager ;
 use Tk::Multi::Text ;
 use Tk::ObjScanner ;
@@ -18,17 +19,21 @@ use AutoLoader 'AUTOLOAD' ;
 
 use strict ;
 use vars qw($VERSION) ;
-$VERSION = '0.01' ;
+$VERSION = '0.02' ;
 
 # stubs
 sub acquire ;
 sub drop;
+sub dropAll ;
 sub acquiredBy ;
 sub droppedBy ;
 sub display ;
 sub closeDisplay ;
 sub printDebug ;
 sub printEvent ;
+sub storeDbInfo ;
+sub deleteDbInfo ;
+
 
 # see loadspecs for other names
 sub new 
@@ -37,14 +42,27 @@ sub new
     my $self = {} ;
     my %args = @_ ;
     
-    $self->{name} = $args{name} ;
-    
-    $self->{topTk} = $args{topTk} ;    #  top window
-    
-    # config debug window
-    foreach (qw(debug events))
+    foreach (qw/name topTk dbHash keyRoot/)
       {
-        $self->{'log'}{$_} = new Puppet::Log ($_);
+        $self->{$_} = delete $args{$_} ;
+      }
+
+    # parameter check
+    if (defined $self->{dbHash} or defined $self->{keyRoot})
+      {
+        foreach (qw/name dbHash keyRoot/)
+          {
+            croak("You must pass parameter $_ to $type $self->{name}\n") 
+              unless defined $self->{$_};
+          }
+        $self->{myDbKey} = $self->{keyRoot}.";".$self->{name} ;
+        $self->{"myDbHash"} = $self->{dbHash}{ $self->{myDbKey} } ;
+      }
+
+    # config debug window
+    foreach (qw(debug event))
+      {
+        $self->{'log'}{$_} = new Puppet::Log ($_,%args);
       }
 
     bless $self,$type ;
@@ -60,11 +78,32 @@ Puppet::Any - Common base class for lab development tools
 
 =head1 SYNOPSIS
 
-use Puppet::Any ;
+ use Puppet::Any ;
 
-package myClass ;
+ package myClass ;
 
-@myClass::ISA=('Puppet::Any') ;
+ @myClass::ISA=('Puppet::Any') ;
+
+ package main ;
+ my $file = 'test.db';
+ my %dbhash;
+ tie %dbhash,  'MLDBM',    $file , O_CREAT|O_RDWR, 0640 or die $! ;
+
+ my $test = new myClass (name => 'test',
+                           dbHash => \%dbhash,
+                           keyRoot => 'key root'
+                          );
+
+ $test->display;
+ $test->setDbInfo(toto => 'toto val', 
+                 'titi' => 'titi val',
+                dummy => 'null') ;
+
+ $test->deleteDbInfo('dummy');
+
+ MainLoop ; # Tk's
+
+ untie %dbhash ;
 
 =head1 DESCRIPTION
 
@@ -100,6 +139,14 @@ The base class features :
 - A set of functions to managed "has-a" relationship between Puppet objects.
   The menu bar feature a "content" bar which enabled the user to open the
   display of all "contained" objects.
+- a facility to store data on a database file tied to a hash.
+
+The class is designed to store its data in a SINGLE entry of the database
+file. (For this you should use MLDBM if you want to store more than a scalar
+in the database). The key for this entry is "$keyRoot;$name". keyRoot and
+name being passed to the constructor of the object. Needless to say, it's a bad
+idea to create two instances of Puppet::WithDb with the same keyRoot and name.
+
 
 =head1 default bindings
 
@@ -135,22 +182,48 @@ Do not squash it.
 Hash containing the following keys :
 
  - toplevel: toplevel window ref of this object.
- - menubar: Frame containing the menu buttons.
-  - contentMnb: ref to the menu managing content (private)
- - menu hash containing menu widgets. ('File')
+ - menubar: Frame containing the menu buttons. (you may call MenuButton on it)
+ - contentMnb: ref to the menu managing content (private)
+ - menu: hash containing menu widgets. ('File' for instance) 
+  ( you may call command on
+   $self->{tk}{menu}{'File'} to define a new command in the menu for instance)
  - multiMgr Tk::Multi::Manager buddy ref.
 
 When the closeDisplay method is called, it will destroy $self->{tk}{toplevel},
-thus it will destroy all Tk widgets and then it will delete the Tk hash, thus
-it will delete all internal reference to the destroyed widgets.
+thus it will destroy all Tk widgets and then it will delete the $self->{tk}
+ hash, thus it will delete all internal reference to the destroyed widgets.
+So you can also test whether your widget has a display by testing if 
+$self->{tk} is defined.
 
 The sub-class MUST abide to this rule if the closeDisplay is to work properly.
 
+=head2 dbHash
+
+Tied hash to the database.
+
+=head2 keyRoot
+
+First part of the key to access the database
+
+=head2 myDbKey
+
+The key to access the database
+
 =head1 Methods
 
-=head2 new('name' => a_name, 'topTk' => topTkWindow)
+=head2 new( ... )
 
 Creates new Puppet object.
+
+parameters are :
+ - name
+ - topTk (optionnal, will create a MainWindow if ommitted)
+ - keyRoot
+ - dbHash: ref of the tied hash
+
+Note that all other arguments are passed to the Puppet::Log constructors. 
+I.e. you can also specify arguments specific to Puppet::Log->new() through 
+Puppet::Any->new() function.
 
 =head2 acquire(a_name, a_ref)
 
@@ -196,9 +269,22 @@ Close the display. Note that the display can be re-invoked later.
 
 Will log the passed text into the debug log object.
 
-=head2 printEvents(text)
+=head2 printEvent(text)
 
 Will log the passed text into the events log object.
+
+=head2 showEvent(text)
+
+Will display the 'event' log window.
+
+=head2 storeDbInfo( key => value, ...)
+
+Store the passed hash in the database. You may also pass a hash ref as single
+argument.
+
+=head2 deleteDbInfo( key, ...)
+
+delete the "key" entries from the database.
 
 =head1 AUTHOR
 
@@ -227,25 +313,45 @@ sub acquire
     return if not defined $self->{tk}{contentMnb} ;
 
     my %hash;
-    my $i = 0;
+    my $i = 1 ;
     map($hash{$_}= $i++, sort keys %{$self->{content}}) ;
 
     my $pos = $hash{$name} == ($i-1) ? 'end' : $hash{$name} ;
-    $self->{tk}{contentMnb} -> menu -> insert($hash{$name},'command',
+    $self->{tk}{contentMnb} -> menu -> insert
+      (
+       $pos,'command',
        -label => $name,
        command => sub{$self->{content}{$name}->display(); }
       );
   }
 
+sub dropAll
+  {
+    my $self = shift ;
+    
+    my @array = sort keys %{$self->{content}} ;
+    # beware that drop will delete $self->{content}
+    $self->drop(@array);
+  }  
+
 sub drop
   {
     my $self = shift ;
-    my $name = shift;
 
-    return unless defined $self->{content}{$name} ;
-    $self->{content}{$name} -> droppedBy($self) ;
-    delete $self->{content}{$name} ;
-    $self->{tk}{contentMnb} -> menu ->delete($name) ;
+    my %hash;
+    my $i = 1;
+    map($hash{$_}= $i++, sort keys %{$self->{content}}) ;
+
+    foreach (@_)
+      {
+        next unless defined $self->{content}{$_} ;
+        
+        my $pos = $hash{$_} == ($i-1) ? 'end' : $hash{$_} ;
+
+        $self->{content}{$_} -> droppedBy($self) ;
+        $self->{tk}{contentMnb} -> menu ->delete($pos) ;
+        delete $self->{content}{$_} ;
+      }
   }
 
 sub acquiredBy
@@ -298,16 +404,29 @@ sub display
     
     $self->printDebug("Creating Toplevel display for ".ref($self)."\n") ;
 
+    my $poof ;
     if (defined $self->{topTk})
       {
         $self->{tk}{toplevel} = $self->{topTk} -> Toplevel();
+        $poof = 'poof';
       }
     else
       {
-        $self->{tk}{toplevel} = MainWindow-> new ;
+        $self->{topTk} = $self->{tk}{toplevel} = MainWindow-> new ;
+        $poof = 'Quit' ;
       }
 
     $self->{tk}{toplevel} -> title($labelName) ;
+
+    my $showDebug = sub 
+      { 
+        # must not create 2 scanner windows
+        unless (scalar grep(ref($_ ) eq 'Tk::ObjScanner',
+                            $self->{tk}{toplevel}->children))
+          {
+            $self->{tk}{toplevel} -> ObjScanner('caller' => $self) -> pack;
+          }
+      } ;
 
     # create common menu bar
     my $w_menu = $self->{tk}{toplevel} ->
@@ -316,8 +435,10 @@ sub display
     $self->{tk}{menu}{File} = 
       $w_menu->Menubutton(-text => 'File', -underline => 0) 
         -> pack(side => 'left' );
-    $self->{tk}{menu}{File}->command(-label => 'poof',  
+    $self->{tk}{menu}{File}->command(-label => $poof,  
                                  -command => sub{$self->closeDisplay();} );
+    $self->{tk}{menu}{File}->command(-label => 'show internals',  
+                                 -command => $showDebug );
     # currently core dumps
     #$self->{tk}{menu}{File}->command(-label => 'Quit',  -command => sub{exit;} );
 
@@ -341,21 +462,10 @@ sub display
       ( 'title' => 'log' , 'menu' => $w_menu ) -> pack ();
     
     # bind dump info 
-    $self->{tk}{toplevel}->bind
-      (
-       '<Meta-d>', 
-       sub { 
-         # must not create 2 scanner windows
-         unless (scalar grep(ref($_ ) eq 'Tk::ObjScanner',
-                             $self->{tk}{toplevel}->children))
-           {
-             $self->{tk}{toplevel} -> ObjScanner('caller' => $self) -> pack;
-           }
-       }
-      );
+    $self->{tk}{toplevel}->bind ('<Meta-d>', $showDebug);
     
     # config debug window
-    foreach (qw(debug events))
+    foreach (qw(debug event))
       {
         $self->{'log'}{$_} -> display ($self->{tk}{multiMgr},1);
       }
@@ -404,6 +514,48 @@ sub printEvent
   {
     my $self= shift ;
     my $text=shift ;
-    $self->{'log'}{events}->log($text) ;
+    $self->{'log'}{'event'}->log($text) ;
+  }
+
+sub showEvent
+  {
+    my $self= shift ;
+    $self->{'log'}{'event'} -> show ();
+  }
+
+sub storeDbInfo
+  {
+    my $self = shift ;
+    my $h ;
+    if (scalar(@_) == 1) {$h = shift ;}
+    else {%$h = @_ ;}
+
+    # MLDBM hackery
+    my $hash = $self->{dbHash}{ $self->{myDbKey} };
+
+    @$hash{keys %$h} = values %$h ;
+
+    $self->{dbHash}{ $self->{myDbKey} } = $hash ; # register it in MLDBM
+    $self->{"myDbHash"} = $hash ;
+  }
+
+sub deleteDbInfo
+  {
+    my $self = shift ;
+    my @args = @_ ;
+
+    if (scalar @args)
+      {
+        # MLDBM hackery
+        my $hash = $self->{dbHash}{ $self->{myDbKey} };
+        map(delete $hash->{$_},@args) ;
+        $self->{dbHash}{ $self->{myDbKey} } = $hash ; # register it in MLDBM
+        $self->{"myDbHash"} = $hash ;
+      }
+    else
+      {
+        delete $self->{dbHash}{ $self->{myDbKey} } ; # destroy all
+        delete $self->{"myDbHash"} ;
+      }
   }
 

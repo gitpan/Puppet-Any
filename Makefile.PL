@@ -8,6 +8,7 @@ WriteMakefile(
               'PREREQ_PM' =>
               {
                'Tk' => 0,
-               'Puppet::Log'=> 0
+               'Puppet::Log'=> 0,
+               'MLDBM' => 0
               }
              );

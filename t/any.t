@@ -103,5 +103,7 @@ $test->addChildren() ;
 
 $test->display;
 
+$test->showEvent;
+
 MainLoop ; # Tk's
 
